@@ -1,0 +1,6 @@
+#ignore everything
+*
+
+#exceptions
+!*.r
+!*.R
