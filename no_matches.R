@@ -1,5 +1,10 @@
-# rm(list = ls(all=TRUE))
-set.seed(123)
-read_file <- read_excel(path = "Belgium Horeca Locations/SF Data merge R Project/matched_AM_DB.xlsx", sheet = "Sheet1")
-temp <- subset(read_file, fbid == "No Match", select = colnames(read_file))
-temp2 <- temp[sample(1:nrow(temp), 20, replace=FALSE),]
+rm(list = ls(all=TRUE))
+# setwd("~/Dashmote/Belgium Horeca Locations/SF Data merge R Project/")
+
+library(readxl)
+
+set.seed(123) #123, 111, 500
+
+read_file <- read_excel(path = "matched_AM_DB.xlsx", sheet = "Sheet1")
+temp_m <- subset(read_file, fbid == "No Match", select = colnames(read_file))
+temp_2m <- temp_m[sample(1:nrow(temp_m), 20, replace=FALSE),]
