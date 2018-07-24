@@ -10,6 +10,8 @@ AM <- read_excel("Strongbow Excercise of scope sent to dashmote.xlsx",
 DM <- read_excel("Strongbow Excercise of scope sent to dashmote.xlsx", 
                  sheet = "DM30k")
 
+DM <- DM[!duplicated(DM$`FB ID`),]
+
 # {
 #   for(id in DM$`FB ID`){
 #     if(!is.na(DM$Name[DM$`FB ID`==id])){
