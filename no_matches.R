@@ -1,4 +1,4 @@
-rm(list = ls(all=TRUE))
+# rm(list = ls(all=TRUE))
 # setwd("~/Dashmote/Belgium Horeca Locations/SF Data merge R Project/")
 
 library(readxl)

@@ -10,8 +10,6 @@ AM <- read_excel("Strongbow Excercise of scope sent to dashmote.xlsx",
 DM <- read_excel("Strongbow Excercise of scope sent to dashmote.xlsx", 
                  sheet = "DM30k")
 
-
-
 # {
 #   for(id in DM$`FB ID`){
 #     if(!is.na(DM$Name[DM$`FB ID`==id])){
@@ -67,6 +65,7 @@ DM <- read_excel("Strongbow Excercise of scope sent to dashmote.xlsx",
 #compare names of locations found. If there is a close enough match, it matches.
 #If no locations are found, then we assume there is no match possible
 #in case there are multiple similar names, a human supervision is required
+
 library(geosphere)
 
 AM$`Account Name`[is.na(AM$`Account Name`)] <- ""
