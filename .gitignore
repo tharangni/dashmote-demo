@@ -4,5 +4,4 @@
 #exceptions
 !*.r
 !*.R
-!Belgium Horeca Locations/SF Data merge R project/*.R
-!Belgium Horeca Locations/SF Data merge R project/*.r
+!Belgium Horeca Locations/SF Data merge R project/merging.R
