@@ -1,8 +1,9 @@
-#ignore everything
-*
-
 #exceptions
 !*.r
 !*.R
-!Belgium Horeca Locations/SF Data merge R project/merging.R
 .Rproj.user
+!Belgium Horeca Locations/SF Data merge R project/merging.R
+
+#ignore everything
+*
+
