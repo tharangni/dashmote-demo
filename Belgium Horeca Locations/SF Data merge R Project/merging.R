@@ -1,9 +1,11 @@
+# rm(list = ls(all=TRUE)) #!caution
+
 library(stringr)
 library(dplyr)
 library(stringdist)
 
 library(readxl)
-# options(digits = 16)
+
 AM <- read_excel("Strongbow Excercise of scope sent to dashmote.xlsx", 
                  sheet = "ALL DATA SF")
 
@@ -11,6 +13,7 @@ DM <- read_excel("Strongbow Excercise of scope sent to dashmote.xlsx",
                  sheet = "DM30k")
 
 DM <- DM[!duplicated(DM$`FB ID`),]
+
 
 # {
 #   for(id in DM$`FB ID`){
@@ -73,10 +76,13 @@ library(geosphere)
 AM$`Account Name`[is.na(AM$`Account Name`)] <- ""
 AM$`Shipping_GeoLocation`[is.na(AM$Shipping_GeoLocation)] <- ""
 AM$fbid <- ""
+AM$reason <- ""
+AM$score<- ""
 
 library(parallel)
 cl <- makeCluster(detectCores() - 1)
 temp <- DM[,c('longitude','latitude')]
+
 clusterExport(cl, "temp")
 counter = 0
 
@@ -103,6 +109,7 @@ for(placei in 1:length(AM$Shipping_GeoLocation)){
   #   distm(c(lonAM, latAM), c(x['longitude'], x['latitude']), fun = distHaversine)
   #   })
   close_locations <- which(dist_list<100)
+  
   if(length(close_locations)>0){
     name_am <- AM$`Account Name`[placei] %>% gsub("[^a-zA-Z]", "", .) %>% tolower()
     names_dm <- DM$Name[close_locations] %>% gsub("[^a-zA-Z]", "", .) %>% tolower()
@@ -110,29 +117,49 @@ for(placei in 1:length(AM$Shipping_GeoLocation)){
     name_similarity <- stringdist::stringdist(name_am, names_dm, method = "jaccard", q=2)
     name_similarity[is.na(name_similarity)] <- 1
     
-    if(sum(name_similarity<=0.75)==1){#assume it is a perfect match
+    #assume it is a perfect match i.e. there exists only one unique result [name similarity]
+    if(sum(name_similarity<=0.75)==1){
       index <- close_locations[which(name_similarity<=0.75)]
       print(paste("Merging: ",DM$Name[index],"with", name_am))
       AM$fbid[placei] <- DM$`FB ID`[index]
+
+      AM$reason[placei] <- paste("Merged [DM]: ",DM$Name[index],"with [AM]: ", name_am)
+      AM$score[placei] <- paste(min(name_similarity))
       counter <- counter + 1
-    } else if(sum(name_similarity<=0.75)>1){
+    } 
+    
+    # if there exists more than one unique result [name similarity] then find the closest location
+    # based on min similarity
+    else if(sum(name_similarity<=0.75)>1){
       #error()
       print(paste("Distance:",dist_list[close_locations],"Name AM:", name_am,"Name DM:",names_dm, name_similarity))
       best_match_mask <- which(name_similarity==min(name_similarity))
       index <- close_locations[best_match_mask]
       print(paste("Merging: ",DM$Name[index],"with", name_am))
       AM$fbid[placei] <- DM$`FB ID`[index]
+
+      AM$reason[placei] <- paste("Merged [DM]: ",DM$Name[index],"with [AM]: ", name_am)
+      AM$score[placei] <- paste(min(name_similarity))
       counter <- counter + 1
     }
-  } else {
+  } 
+  
+  else {
     print(paste("Match not found",AM$`Account Name`[placei]))
     AM$fbid[placei] <- "No Match"
+    
+    AM$reason[placei] <- "No establishments present in vicinity"
   }
   
 }
+
 AM$fbid[AM$fbid==""] <- "No Match"
+AM$reason[AM$reason==""] <- "No establishments present in vicinity"
+AM$score[AM$score==""] <- "1"
+
+
 stopCluster(cl)
 save(file="AM.RData",DM,AM)
 
 # xlsx::write.xlsx(AM,file="matched_AM_DB.xlsx")
-xlsx::write.xlsx(AM,file="matched_AM_DB_temp.xlsx")
+xlsx::write.xlsx(AM,file="matched_AM_DB_30k.xlsx")

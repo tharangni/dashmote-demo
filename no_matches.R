@@ -1,5 +1,5 @@
 rm(list = ls(all=TRUE))
-# setwd("~/Dashmote/Belgium Horeca Locations/SF Data merge R Project/")
+# setwd("../Belgium Horeca Locations/SF Data merge R Project/")
 
 library(readxl)
 
