@@ -1,3 +1,8 @@
+# https://stackoverflow.com/questions/7096989/how-to-save-all-console-output-to-file-in-r
+# con <- file("runs.log")
+# sink(con, append=TRUE)
+# sink(con, append=TRUE, type="message")
+
 rm(list = ls(all=TRUE)) #!caution
 
 library(stringr)
@@ -113,8 +118,8 @@ for(placei in 1:length(AM$Shipping_GeoLocation)){
 
   # re-implement version
   
-  del_lat <- 0.0009
-  del_long <- 0.0015
+  del_lat <- 0.007
+  del_long <- 0.007
   xp <- latAM + del_lat
   xn <- latAM - del_lat
   yp <- lonAM + del_long
@@ -146,7 +151,7 @@ for(placei in 1:length(AM$Shipping_GeoLocation)){
     # based on min similarity
     else if(sum(name_similarity<=0.75)>1){
       #error()
-      # print(paste("Distance:",dist_list[close_locations],"Name AM:", name_am,"Name DM:",names_dm, name_similarity))
+      print(paste("Score: Name AM:", name_am,"Name DM:",names_dm, name_similarity))
       
       best_match_mask <- which(name_similarity==min(name_similarity))
       
@@ -175,6 +180,9 @@ AM$score[AM$score==""] <- "1"
 print("Saving files...")
 # stopCluster(cl)
 save(file="AM.RData",DM,AM)
+no_match <- nrow(subset(AM, fbid == "No Match", select = colnames(AM)))
+
+print(paste("Number of matches found: ", nrow(AM) - no_match, "/", nrow(AM)))
 
 # xlsx::write.xlsx(AM,file="matched_AM_DB.xlsx")
 xlsx::write.xlsx(AM,file="matched_AM_DB_30k.xlsx")

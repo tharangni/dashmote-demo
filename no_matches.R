@@ -7,4 +7,4 @@ set.seed(123) #123, 111, 500
 
 read_file <- read_excel(path = "matched_AM_DB_30k.xlsx", sheet = "Sheet1")
 temp_m <- subset(read_file, fbid == "No Match", select = colnames(read_file))
-temp_2m <- temp_m[sample(1:nrow(temp_m), 20, replace=FALSE),]
+temp_2m <- temp_m[sample(1:nrow(temp_m), 40, replace=FALSE),]
