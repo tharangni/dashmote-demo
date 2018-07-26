@@ -1,4 +1,4 @@
-# rm(list = ls(all=TRUE)) #!caution
+rm(list = ls(all=TRUE)) #!caution
 
 library(stringr)
 library(dplyr)
@@ -13,6 +13,7 @@ DM <- read_excel("Strongbow Excercise of scope sent to dashmote.xlsx",
                  sheet = "DM30k")
 
 DM <- DM[!duplicated(DM$`FB ID`),]
+AM <- AM[!duplicated(AM$`Account Name`),]
 
 
 # {
@@ -79,12 +80,12 @@ AM$fbid <- ""
 AM$reason <- ""
 AM$score<- ""
 
-library(parallel)
-cl <- makeCluster(detectCores() - 1)
+# library(parallel)
+# cl <- makeCluster(detectCores() - 1)
 temp <- DM[,c('longitude','latitude')]
-
-clusterExport(cl, "temp")
 counter = 0
+
+# clusterExport(cl, "temp")
 
 for(placei in 1:length(AM$Shipping_GeoLocation)){
   if(placei %% 100 == 0) {
@@ -99,31 +100,44 @@ for(placei in 1:length(AM$Shipping_GeoLocation)){
   gps <- str_split(place,",")
   latAM <- gps[[1]][1] %>% as.numeric()
   lonAM <- gps[[1]][2] %>% as.numeric()
-  clusterExport(cl, c("lonAM","latAM"))
-  
-  dist_list <- parLapply(cl,1:NROW(temp),function(x){ 
-    geosphere::distHaversine(c(lonAM, latAM), c(temp$longitude[x], temp$latitude[x]))
-  }) %>% unlist()
+  # clusterExport(cl, c("lonAM","latAM"))
+
+  # dist_list <- parLapply(cl,1:NROW(temp),function(x){ 
+  #   geosphere::distHaversine(c(lonAM, latAM), c(temp$longitude[x], temp$latitude[x]))
+  # }) %>% unlist()
   
   # dist_list <- apply(DM[,c('longitude','latitude')],1,function(x){ 
   #   distm(c(lonAM, latAM), c(x['longitude'], x['latitude']), fun = distHaversine)
   #   })
-  close_locations <- which(dist_list<100)
+  # close_locations <- which(dist_list<100)
+
+  # re-implement version
   
-  if(length(close_locations)>0){
+  del_lat <- 0.0009
+  del_long <- 0.0015
+  xp <- latAM + del_lat
+  xn <- latAM - del_lat
+  yp <- lonAM + del_long
+  yn <- lonAM - del_long
+  
+  # make an object which contains the gps coords that only lie within the specific range from temp table
+  pos <- which(temp$longitude < yp & temp$longitude > yn & temp$latitude < xp & temp$latitude > xn)
+  close_locations <- temp[pos,]
+  
+  if(nrow(close_locations)>0){
     name_am <- AM$`Account Name`[placei] %>% gsub("[^a-zA-Z]", "", .) %>% tolower()
-    names_dm <- DM$Name[close_locations] %>% gsub("[^a-zA-Z]", "", .) %>% tolower()
+    names_dm <- DM$Name[pos] %>% gsub("[^a-zA-Z]", "", .) %>% tolower()
     
     name_similarity <- stringdist::stringdist(name_am, names_dm, method = "jaccard", q=2)
     name_similarity[is.na(name_similarity)] <- 1
     
     #assume it is a perfect match i.e. there exists only one unique result [name similarity]
     if(sum(name_similarity<=0.75)==1){
-      index <- close_locations[which(name_similarity<=0.75)]
-      print(paste("Merging: ",DM$Name[index],"with", name_am))
-      AM$fbid[placei] <- DM$`FB ID`[index]
+      index <- which(name_similarity<=0.75)
+      print(paste("Merging: ",DM$Name[pos[index]],"with", name_am))
+      AM$fbid[placei] <- DM$`FB ID`[pos[index]]
 
-      AM$reason[placei] <- paste("Merged [DM]: ",DM$Name[index],"with [AM]: ", name_am)
+      AM$reason[placei] <- paste("Merged [DM]: ",DM$Name[pos[index]],"with [AM]: ", name_am)
       AM$score[placei] <- paste(min(name_similarity))
       counter <- counter + 1
     } 
@@ -132,13 +146,14 @@ for(placei in 1:length(AM$Shipping_GeoLocation)){
     # based on min similarity
     else if(sum(name_similarity<=0.75)>1){
       #error()
-      print(paste("Distance:",dist_list[close_locations],"Name AM:", name_am,"Name DM:",names_dm, name_similarity))
+      # print(paste("Distance:",dist_list[close_locations],"Name AM:", name_am,"Name DM:",names_dm, name_similarity))
+      
       best_match_mask <- which(name_similarity==min(name_similarity))
-      index <- close_locations[best_match_mask]
-      print(paste("Merging: ",DM$Name[index],"with", name_am))
-      AM$fbid[placei] <- DM$`FB ID`[index]
+      
+      print(paste("Merging: ",DM$Name[pos[best_match_mask]],"with", name_am))
+      AM$fbid[placei] <- DM$`FB ID`[pos[best_match_mask]]
 
-      AM$reason[placei] <- paste("Merged [DM]: ",DM$Name[index],"with [AM]: ", name_am)
+      AM$reason[placei] <- paste("Merged [DM]: ",DM$Name[pos[best_match_mask]],"with [AM]: ", name_am)
       AM$score[placei] <- paste(min(name_similarity))
       counter <- counter + 1
     }
@@ -157,8 +172,8 @@ AM$fbid[AM$fbid==""] <- "No Match"
 AM$reason[AM$reason==""] <- "No establishments present in vicinity"
 AM$score[AM$score==""] <- "1"
 
-
-stopCluster(cl)
+print("Saving files...")
+# stopCluster(cl)
 save(file="AM.RData",DM,AM)
 
 # xlsx::write.xlsx(AM,file="matched_AM_DB.xlsx")
