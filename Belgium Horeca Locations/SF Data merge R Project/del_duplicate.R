@@ -1,6 +1,6 @@
 # rm(list = ls(all=TRUE))
 # setwd("~/Dashmote/Belgium Horeca Locations/SF Data merge R Project/")
-
+# TODO: LATER
 library(readxl)
 library(dplyr)
 set.seed(123) #123, 111, 500
@@ -23,44 +23,46 @@ gg <- ggg$data
 
 # names(gg) <- c("Name", "category_list", "checkins", "Likes", "FB page link", "City", "Country", "Latitude", "Longitude", "Street", "Zip", "Rating Count", "Address", "FB ID", "description", "hours", "Rating", "phone", "website")
 for (i in 1:nrow(gg)) {
-  id <- paste("#",i+123453,sep = "")
-  fb_id <- gg$id[i]
-  name <- gg$name[i]
-  fb_link <- gg$link[i]
-  checkins <- gg$checkins[i]
-  likes <- gg$engagement$count[i]
-  tot_eng <- checkins + likes
-  rating_count <- gg$rating_count[i]
-  rating <- gg$overall_star_rating[i]
-  category <- gg$category_list[[i]]$name %>% paste('; ', sep = '', collapse = '')
-  type <- ""
-  address <- gg$single_line_address[i]
-  phone <- gg$phone[i]
-  about <- ""
-  website <- gg$website[i]
-  emails <- ""
-  hours <- paste(gg$hours[[i]]$key, gg$hours[[i]]$value, "; ", sep = " ", collapse = "")
-  weekday_opening_hours <- ""
-  weekday_closing_hours <- ""
-  weekend_opening_hours <- ""
-  weekend_closing_hours <- ""
-  price_range <- ""
-  description <- gg$description[i]
-  services <- ""
-  walkins <- ""
-  waiter <- ""
-  takeout <- ""
-  reserve <- ""
-  pickup <- ""
-  outdoor <- ""
-  kids <- ""
-  groups <- ""
-  catering <- ""
-  delivery <- ""
-  latitude  <- gg$location$latitude[i]
-  longitude  <- gg$location$longitude[i]
-  city  <- gg$location$city[i]
-  country  <- gg$location$country[i]
-  zip  <- gg$location$zip[i]
-  dummy[i,] <- c(id, fb_id, name, fb_link, checkins, likes, tot_eng, rating_count, rating, category, type, address, phone, about, website, emails, hours, weekday_opening_hours, weekday_closing_hours, weekend_opening_hours, weekend_closing_hours, price_range, description, services, walkins, waiter, takeout, reserve, pickup, outdoor, kids, groups, catering, delivery, latitude, longitude, city, country, zip)
+    fb_id <- check_null(gg$id[i])
+    name <- check_null(gg$name[i])
+    fb_link <- check_null(gg$link[i])
+    checkins <- check_null(gg$checkins[i])
+    likes <- check_null(gg$engagement$count[i])
+    tot_eng <- checkins + likes
+    rating_count <- check_null(gg$rating_count[i])
+    rating <- check_null(gg$overall_star_rating[i])
+    category <- gg$category_list[[i]]$name %>% paste('; ', sep = '', collapse = '')
+    type <- check_null(gg$type[i])
+    address <- check_null(gg$single_line_address[i])
+    phone <- check_null(gg$phone[i])
+    about <- check_null(gg$about[i])
+    website <- check_null(gg$website[i])
+    emails <- ""
+    hours <- paste(gg$hours[[i]]$key, gg$hours[[i]]$value, "; ", sep = " ", collapse = "")
+    weekday_opening_hours <- ""
+    weekday_closing_hours <- ""
+    weekend_opening_hours <- ""
+    weekend_closing_hours <- ""
+    price_range <- ""
+    description <- check_null(gg$description[i])
+    services <- ""
+    walkins <- ""
+    waiter <- ""
+    takeout <- ""
+    reserve <- ""
+    pickup <- ""
+    outdoor <- ""
+    kids <- ""
+    groups <- ""
+    catering <- ""
+    delivery <- ""
+    latitude  <- gg$location$latitude[i]
+    longitude  <- gg$location$longitude[i]
+    city  <- gg$location$city[i]
+    country  <- gg$location$country[i]
+    zip  <- gg$location$zip[i]
+  dummy[i,] <- c("id", "fb_id", "name", "fb_link", "checkins", "likes", "tot_eng", "rating_count", "rating", "category", "type", "address", "phone", "about", "website", "emails", "hours", "weekday_opening_hours", "weekday_closing_hours", "weekend_opening_hours", "weekend_closing_hours", "price_range", "description", "services", "walkins", "waiter", "takeout", "reserve", "pickup", "outdoor", "kids", "groups", "catering", "delivery", "latitude", "longitude", "city", "country", "zip")
 }
+
+
+https://graph.facebook.com/v3.0/search?type=place&q=de&zandloper&center=51.329349605353705,3.1807566854648464&distance=200&fields=name,category_list,checkins,description,fan_count,engagement,hours,link,location,overall_star_rating,phone,photos,price_range,rating_count,restaurant_services,restaurant_specialities,website,single_line_address&access_token=EAAPNYkdHBmkBANWNcZAHezVEYYRbZA5jNea5BZABNEZChoYxg73ZAtlEKp3R3zdCGE07VODqXIAmPvyXaO2nw40iw5liTYTTnEzR4LFslSfeJOgJl2QoLfRlT4dCNiZAaTuBTi0KE3ZBCI52BtnSOvC64dhbIt8IA2SbZBWbbVEzegZDZD

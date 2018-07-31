@@ -1,23 +1,30 @@
-# rm(list = ls(all=TRUE))
+rm(list = ls(all=TRUE))
 # setwd("../Belgium Horeca Locations/SF Data merge R Project/")
 
 # library(readxl)
-# 
-# set.seed(123) #123, 111, 500
-# 
+
 # read_file <- read_excel(path = "matched_AM_DB_30k.xlsx", sheet = "Sheet1")
 # temp_m <- subset(read_file, fbid == "No Match", select = colnames(read_file))
 # temp_2m <- temp_m[sample(1:nrow(temp_m), 40, replace=FALSE),]
 
-# t <- data.frame()
+set.seed(123) #123, 111, 500
+
+DM <- read_excel("Strongbow Excercise of scope sent to dashmote.xlsx", 
+                 sheet = "DM30k")
+
 dummy <- DM[1, c(1:length(DM))]
 colnames(dummy)[colnames(dummy)=="category1"] <- "category"
 dummy$category2 <- NULL
 dummy$category3 <- NULL
 dummy <- dummy[FALSE,]
-# d <- dummy
-ggg <- fromJSON("empty.json", flatten = FALSE)
+d <- dummy
+ggg <- fromJSON("d.json", flatten = FALSE)
 gg <- ggg$data
+
+check_null <- function(value) {
+  if (!is.null(value)) { return (value) }
+  else { return (NA) }
+}
 
 # names(gg) <- c("Name", "category_list", "checkins", "Likes", "FB page link", "City", "Country", "Latitude", "Longitude", "Street", "Zip", "Rating Count", "Address", "FB ID", "description", "hours", "Rating", "phone", "website") 
 
@@ -38,9 +45,7 @@ for (i in 1:nrow(gg)) {
   address <- gg$single_line_address[i]
   phone <- gg$phone[i]
   about <- ""
-  if (!is.null(gg$website[i])){
-    website <- gg$website[i] }
-  else {website <- NA}
+  website <- check_null(gg$website[i])
   emails <- ""
   hours <- paste(gg$hours[[i]]$key, gg$hours[[i]]$value, "; ", sep = " ", collapse = "")
   weekday_opening_hours <- "" 
@@ -48,9 +53,7 @@ for (i in 1:nrow(gg)) {
   weekend_opening_hours <- ""
   weekend_closing_hours <- ""
   price_range <- ""
-  if (!is.null(gg$description[i])){
-    description <- gg$description[i] }
-  else {description <- NA}
+  description <- check_null(gg$description[i])
   services <- ""
   walkins <- ""
   waiter <- ""
