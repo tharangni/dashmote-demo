@@ -12,6 +12,8 @@ library(stringdist)
 
 set.seed(123) #123, 111, 500
 
+
+# file should already exist in directory. else download from onedrive: https://1drv.ms/x/s!AreiVpMzAPHtiKw6bOkp1F46k0V5gQ
 DM <- read_excel("Strongbow Excercise of scope sent to dashmote.xlsx", 
                  sheet = "DM30k")
 DM <- DM[!duplicated(DM$`FB ID`),]
@@ -22,9 +24,9 @@ no_match <- subset(read_file, fbid == "No Match", select = colnames(read_file))
 # no_match$latitude <- str_split_fixed(no_match$Shipping_GeoLocation, ",", 2)[,1]
 # no_match$longitude <- str_split_fixed(no_match$Shipping_GeoLocation, ",", 2)[,2]
 
-temp <- no_match[sample(1:nrow(no_match), 100, replace=FALSE),]
+temp <- no_match[sample(1:nrow(no_match), 25, replace=FALSE),]
 
-user_access_token = "EAAPNYkdHBmkBALtvZBseNTYY2n1BGZCfSJ4Nz0sDzGe75IBdTA5Jte5TenKGobXfPWl1Br7ACyu0CW1rK8ekqkKGYjzjHQIDFXxhfJgymS4kVYZCQGk8YxgfnrbvD4gCSR1fpPVtIMtuFYgxmRwkSvS0cpzsNfvQM5AYquY4hmIhSZATq97z4ehC4ZCvsuLMZD"
+user_access_token = "EAAFDEAzmizcBAG7sZAu0ZCD0HuZBRyKrw3ezkHVYBZBoY17DDPwGpZATHm8wwhDvOaVkXc251j5ZA8e2I6PbSY7ZCA9Y4jmANpWFOApK2cF1BZCh2LkijOxSJXCHSdsjRoyg9TmJBVasQSRZCZApTF3NkTDjcwivB6JZAmDrwn45XPqAjEr4dBekUZAf"
 
 dummy <- DM[1, c(1:length(DM))]
 colnames(dummy)[colnames(dummy)=="category1"] <- "category"
@@ -78,7 +80,7 @@ check_hours <- function(hours) {
     hours <- paste(hours$key, hours$value, ", ", sep = " ", collapse = "")
     hour_list <- list("hours" = hours, "w_op" = w_op, "w_ed" = w_ed, "wn_op" = wn_op, "wn_ed" = wn_ed)
     return (hour_list) 
-    }
+  }
 }
 
 
@@ -87,46 +89,71 @@ check_hours <- function(hours) {
 
 ##facebook extracting part
 
-# json_df <- data.frame()
-# 
-# for (name in temp$`Account Name`) {
-#   converted_name <- url_encode(name)
-#   print(paste(name, " ", converted_name, temp$Shipping_GeoLocation[temp$`Account Name`==name]))
-#   h1 <- handle('')
-#   graph_url <- paste("https://graph.facebook.com/v3.0/search?type=place&q=",converted_name,"&center=",temp$Shipping_GeoLocation[temp$`Account Name`==name],"&distance=500&fields=name,category_list,checkins,description,fan_count,engagement,hours,link,location,overall_star_rating,phone,photos,price_range,rating_count,restaurant_services,restaurant_specialities,website,single_line_address&access_token=",user_access_token,sep="")
-#   # print(graph_url)
-#   # result_html <- tryCatch(read_html(graph_url),error=function(x){return(0)})
-#   # if(is.numeric(result_html)){next}
-# 
-#   # result_html <- GET(url = graph_url, handle = h1, add_headers(c("user-agent"='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36')))
-# 
-#   graph_json <- fromJSON(graph_url, flatten = TRUE)
-#   gg <- graph_json$data
-#   # print(length(setdiff(colnames(gg), colnames(json_df))))
-#   # print(length(setdiff(colnames(json_df), colnames(gg))))
-# 
-#   if (is.null(nrow(gg))) {next}
-#   else if (nrow(json_df) == 0) {
-#     json_df <- rbind(json_df, gg)
-#     next }
-# 
-#   if(ncol(json_df) > ncol(gg)){
-#     # print("1-if")
-#     absent <-  setdiff(colnames(json_df), colnames(gg))
-#     gg[, absent] <- NA
-# 
-#   }
-# 
-#   if(ncol(json_df) < ncol(gg)){
-#     # print("2-if")
-#     absent <-  setdiff(colnames(gg), colnames(json_df))
-#     json_df[, absent] <- NA
-#   }
-# 
-#   json_df <- rbind(json_df, gg)
-# }
-# 
-# saveRDS(json_df, file="data.Rda")
+json_df <- data.frame()
+
+for (name in temp$`Account Name`) {
+  converted_name <- url_encode(name)
+  gps_full <- temp$Shipping_GeoLocation[temp$`Account Name`==name]
+  print(paste(name, " ", converted_name, gps_full))
+  h1 <- handle('')
+  graph_url <- paste("https://graph.facebook.com/v3.0/search?type=place&q=",converted_name,"&center=",gps_full,"&distance=500&fields=name,category_list,checkins,description,fan_count,engagement,hours,link,location,overall_star_rating,phone,photos,price_range,rating_count,restaurant_services,restaurant_specialities,website,single_line_address&access_token=",user_access_token,sep="")
+  # print(graph_url)
+  # result_html <- tryCatch(read_html(graph_url),error=function(x){return(0)})
+  # if(is.numeric(result_html)){next}
+  
+  # result_html <- GET(url = graph_url, handle = h1, add_headers(c("user-agent"='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36')))
+  
+  graph_json <- fromJSON(graph_url, flatten = TRUE)
+  gg <- graph_json$data
+  print(length(colnames(gg)))
+  # print(length(setdiff(colnames(gg), colnames(json_df))))
+  # print(length(setdiff(colnames(json_df), colnames(gg))))
+  
+  if (is.null(nrow(gg))) {next}
+  else if (nrow(json_df) == 0) {
+    json_df <- rbind(json_df, gg)
+    next }
+  
+  if(ncol(json_df) > ncol(gg)){
+    # print("1-if")
+    absent <-  setdiff(colnames(json_df), colnames(gg))
+    gg[, absent] <- NA
+    
+  }
+  
+  if(ncol(json_df) < ncol(gg)){
+    # print("2-if")
+    absent <-  setdiff(colnames(gg), colnames(json_df))
+    json_df[, absent] <- NA
+  }
+  
+  
+  # to deal with multiple results
+  if(nrow(gg) > 1) {
+    
+    gps <- str_split(gps_full,",")
+    latMUL <- gps[[1]][1] %>% as.numeric()
+    longMUL <- gps[[1]][2] %>% as.numeric()
+    
+    del_lat <- 0.00165
+    del_long <- 0.00165
+    
+    xp <- latMUL + del_lat
+    xn <- latMUL - del_lat
+    yp <- longMUL + del_long
+    yn <- longMUL - del_long
+    
+    # make an object which contains the gps coords that only lie within the specific range from temp table
+    pos <- which(gg$location.longitude < yp & gg$location.longitude > yn &  gg$location.latitude < xp &  gg$location.latitude > xn)
+    close_locations <- gg[pos,]
+    gg <- close_locations
+    # rm(close_locations)
+  }
+  
+  json_df <- rbind(json_df, gg)
+}
+
+saveRDS(json_df, file="data25.Rda")
 
 
 
