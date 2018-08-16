@@ -4,6 +4,7 @@
 library(xml2)
 library(httr)
 library(dplyr)
+library(tidyr)
 library(readxl)
 library(stringr)
 library(jsonlite)
@@ -14,26 +15,39 @@ set.seed(123) #123, 111, 500
 
 
 # file should already exist in directory. else download from onedrive: https://1drv.ms/x/s!AreiVpMzAPHtiKw6bOkp1F46k0V5gQ
-DM <- read_excel("Strongbow Excercise of scope sent to dashmote.xlsx", 
+DM <- read_excel("Strongbow Excercise of scope sent to dashmote.xlsx",
                  sheet = "DM30k")
 DM <- DM[!duplicated(DM$`FB ID`),]
 
+### merging category1-category2-category3 columns of DM database into a singlle column
+mergeDM <- DM %>% unite(category, category1, category2, category3, sep=";", remove = FALSE)
+mergeDM$category1 <- NULL
+mergeDM$category2 <- NULL
+mergeDM$category3 <- NULL
+
+# write.csv(mergeDM, "merge0DM.csv")
+# xlsx::write.xlsx(mergeDM,file="merge0DM.xlsx")
+
+# mergeDM <- read.csv("merge0DM.csv")
+# mergeDM$X <- NULL
+
+temp <- mergeDM[nrow(mergeDM), 1] %>% as.character() %>% str_split(pattern = "#")
+last_id <- temp[[1]][2] %>% as.numeric()
+
 read_file <- read_excel(path = "matched_AM_DB_30k.xlsx", sheet = "Sheet1")
+read_file <- read_file[which(read_file$Shipping_GeoLocation != ","),]
 no_match <- subset(read_file, fbid == "No Match", select = colnames(read_file))
 
 # no_match$latitude <- str_split_fixed(no_match$Shipping_GeoLocation, ",", 2)[,1]
 # no_match$longitude <- str_split_fixed(no_match$Shipping_GeoLocation, ",", 2)[,2]
 
-temp <- no_match[sample(1:nrow(no_match), 25, replace=FALSE),]
+# temp <- no_match[sample(1:nrow(no_match), nrow(no_match), replace=FALSE),]
+temp <- no_match[5301:nrow(no_match),]
+user_access_token = "EAAKrxkNYwYQBALGakXltg4xZCGNIWWt4P3gZB5PuHzgm0jpfxZClhUewHA8NbxbklnBZCe9XuTtPtDHZBELAA1mC2jvWSmwER20oV1sMdA3F6EAiVhbL1svQOvDywgRfPZBuetZCnfgLty2WDtqFk9HS5kHFiro8xFGHXTPOTa5ugjHAtfC9WUx"
 
-user_access_token = "EAAFDEAzmizcBAG7sZAu0ZCD0HuZBRyKrw3ezkHVYBZBoY17DDPwGpZATHm8wwhDvOaVkXc251j5ZA8e2I6PbSY7ZCA9Y4jmANpWFOApK2cF1BZCh2LkijOxSJXCHSdsjRoyg9TmJBVasQSRZCZApTF3NkTDjcwivB6JZAmDrwn45XPqAjEr4dBekUZAf"
-
-dummy <- DM[1, c(1:length(DM))]
-colnames(dummy)[colnames(dummy)=="category1"] <- "category"
-dummy$category2 <- NULL
-dummy$category3 <- NULL
+dummy <- mergeDM[1, c(1:length(mergeDM))]
 dummy <- dummy[FALSE,]
-d <- dummy
+newDM <- dummy
 # rm(DM)
 
 
@@ -89,71 +103,79 @@ check_hours <- function(hours) {
 
 ##facebook extracting part
 
-json_df <- data.frame()
-
-for (name in temp$`Account Name`) {
-  converted_name <- url_encode(name)
-  gps_full <- temp$Shipping_GeoLocation[temp$`Account Name`==name]
-  print(paste(name, " ", converted_name, gps_full))
-  h1 <- handle('')
-  graph_url <- paste("https://graph.facebook.com/v3.0/search?type=place&q=",converted_name,"&center=",gps_full,"&distance=500&fields=name,category_list,checkins,description,fan_count,engagement,hours,link,location,overall_star_rating,phone,photos,price_range,rating_count,restaurant_services,restaurant_specialities,website,single_line_address&access_token=",user_access_token,sep="")
-  # print(graph_url)
-  # result_html <- tryCatch(read_html(graph_url),error=function(x){return(0)})
-  # if(is.numeric(result_html)){next}
-  
-  # result_html <- GET(url = graph_url, handle = h1, add_headers(c("user-agent"='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36')))
-  
-  graph_json <- fromJSON(graph_url, flatten = TRUE)
-  gg <- graph_json$data
-  print(length(colnames(gg)))
-  # print(length(setdiff(colnames(gg), colnames(json_df))))
-  # print(length(setdiff(colnames(json_df), colnames(gg))))
-  
-  if (is.null(nrow(gg))) {next}
-  else if (nrow(json_df) == 0) {
-    json_df <- rbind(json_df, gg)
-    next }
-  
-  if(ncol(json_df) > ncol(gg)){
-    # print("1-if")
-    absent <-  setdiff(colnames(json_df), colnames(gg))
-    gg[, absent] <- NA
-    
-  }
-  
-  if(ncol(json_df) < ncol(gg)){
-    # print("2-if")
-    absent <-  setdiff(colnames(gg), colnames(json_df))
-    json_df[, absent] <- NA
-  }
-  
-  
-  # to deal with multiple results
-  if(nrow(gg) > 1) {
-    
-    gps <- str_split(gps_full,",")
-    latMUL <- gps[[1]][1] %>% as.numeric()
-    longMUL <- gps[[1]][2] %>% as.numeric()
-    
-    del_lat <- 0.00165
-    del_long <- 0.00165
-    
-    xp <- latMUL + del_lat
-    xn <- latMUL - del_lat
-    yp <- longMUL + del_long
-    yn <- longMUL - del_long
-    
-    # make an object which contains the gps coords that only lie within the specific range from temp table
-    pos <- which(gg$location.longitude < yp & gg$location.longitude > yn &  gg$location.latitude < xp &  gg$location.latitude > xn)
-    close_locations <- gg[pos,]
-    gg <- close_locations
-    # rm(close_locations)
-  }
-  
-  json_df <- rbind(json_df, gg)
-}
-
-saveRDS(json_df, file="data25.Rda")
+# json_df <- data.frame()
+# 
+# for (name in temp$`Account Name`) {
+#   converted_name <- url_encode(name)
+#   gps_full <- temp$Shipping_GeoLocation[temp$`Account Name`==name]
+#   print(paste(name, " ", converted_name, gps_full))
+#   h1 <- handle('')
+#   graph_url <- paste("https://graph.facebook.com/v3.0/search?type=place&q=",converted_name,"&center=",gps_full,"&distance=500&fields=name,category_list,checkins,description,fan_count,engagement,hours,link,location,overall_star_rating,phone,photos,price_range,rating_count,restaurant_services,restaurant_specialities,website,single_line_address&access_token=",user_access_token,sep="")
+#   # print(graph_url)
+#   # result_html <- tryCatch(read_html(graph_url),error=function(x){return(0)})
+#   # if(is.numeric(result_html)){next}
+# 
+#   # result_html <- GET(url = graph_url, handle = h1, add_headers(c("user-agent"='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36')))
+# 
+#   graph_json <- fromJSON(graph_url, flatten = TRUE)
+#   gg <- graph_json$data
+#   # print(length(colnames(gg)))
+#   # print(length(setdiff(colnames(gg), colnames(json_df))))
+#   # print(length(setdiff(colnames(json_df), colnames(gg))))
+# 
+#   if (is.null(nrow(gg))) {next}
+#   else if (nrow(json_df) == 0) {
+#     json_df <- rbind(json_df, gg)
+#     next }
+#   while (ncol(json_df)!=ncol(gg)) {
+#     if(ncol(json_df) > ncol(gg)){
+#       # print("1-if")
+#       absent <-  setdiff(colnames(json_df), colnames(gg))
+#       gg[, absent] <- NA
+# 
+#     }
+# 
+#     if(ncol(json_df) < ncol(gg)){
+#       # print("2-if")
+#       absent <-  setdiff(colnames(gg), colnames(json_df))
+#       json_df[, absent] <- NA
+#     }
+#   }
+# 
+#   if(ncol(json_df) == ncol(gg)) {
+#     absent <-  setdiff(colnames(json_df), colnames(gg))
+#     gg[, absent] <- NA
+#     absent <-  setdiff(colnames(gg), colnames(json_df))
+#     json_df[, absent] <- NA
+#   }
+# 
+#   # to deal with multiple results
+#   if(nrow(gg) > 1) {
+# 
+#     gps <- str_split(gps_full,",")
+#     latMUL <- gps[[1]][1] %>% as.numeric()
+#     longMUL <- gps[[1]][2] %>% as.numeric()
+# 
+#     del_lat <- 0.00165
+#     del_long <- 0.00165
+# 
+#     xp <- latMUL + del_lat
+#     xn <- latMUL - del_lat
+#     yp <- longMUL + del_long
+#     yn <- longMUL - del_long
+# 
+#     # make an object which contains the gps coords that only lie within the specific range from temp table
+#     pos <- which(gg$location.longitude < yp & gg$location.longitude > yn &  gg$location.latitude < xp &  gg$location.latitude > xn)
+#     close_locations <- gg[pos,]
+#     gg <- close_locations
+#     # rm(close_locations)
+#   }
+# 
+#   json_df <- rbind(json_df, gg)
+#   # tryCatch(json_df <- rbind(json_df, gg), error = function(x){next})
+# }
+# 
+# saveRDS(json_df, file="data_5301_n.Rda")
 
 
 
@@ -162,56 +184,67 @@ saveRDS(json_df, file="data25.Rda")
 ## manipulating part
 
 # df <- readRDS(file="data.Rda")
-# 
-# for (i in 1:nrow(df)) {
-#   id <- paste("#",i+sample(30164:40164, 1, replace=FALSE),sep = "")
-#   fb_id <- check_null(df$id[i])
-#   name <- check_null(df$name[i])
-#   fb_link <- check_null(df$link[i])
-#   checkins <- check_null(df$checkins[i])
-#   likes <- check_null(df$engagement.count[i])
-#   tot_eng <- checkins + likes
-#   rating_count <- check_null(df$rating_count[i])
-#   rating <- check_null(df$overall_star_rating[i])
-#   category <- df$category_list[[i]]$name %>% paste(';', sep = '', collapse = '')
-#   type <- check_null(df$type[i])
-#   address <- check_null(df$single_line_address[i])
-#   phone <- check_null(df$phone[i])
-#   about <- check_null(df$about[i])
-#   website <- check_null(df$website[i])
-#   emails <- check_null(df$emails[i])
-# 
-#   # putting the 4 hours variables in a function where only hours is TRUE
-#   hours_list <- check_hours(df$hours[[i]])
-#   hours <- hours_list$hours
-#   weekday_opening_hours <- hours_list$w_op
-#   weekday_closing_hours <- hours_list$w_ed
-#   weekend_opening_hours <- hours_list$wn_op
-#   weekend_closing_hours <- hours_list$wn_ed
-# 
-#   price_range <- check_null(df$price_range[i])
-#   description <- check_null(df$description[i])
-# 
-#   # Extract a list of serivices
-#   services_list <- check_rs(df[i,])
-#   services <- services_list$services
-#   walkins <- services_list$walkins
-#   waiter <- services_list$waiter
-#   takeout <- services_list$takeout
-#   reserve <- services_list$reserve
-#   pickup <- services_list$pickup
-#   outdoor <- services_list$outdoor
-#   kids <- services_list$kids
-#   groups <- services_list$groups
-#   catering <- services_list$catering
-#   delivery <- services_list$delivery
-# 
-#   latitude  <- check_null(df$location.latitude[i])
-#   longitude  <- check_null(df$location.longitude[i])
-#   city  <- check_null(df$location.city[i])
-#   country  <- check_null(df$location.country[i])
-#   zip  <- check_null(df$location.zip[i])
-#   # dummy[i,] <- c("id", "fb_id", "name", "fb_link", "checkins", "likes", "tot_eng", "rating_count", "rating", "category", "type", "address", "phone", "about", "website", "emails", "hours", "weekday_opening_hours", "weekday_closing_hours", "weekend_opening_hours", "weekend_closing_hours", "price_range", "description", "services", "walkins", "waiter", "takeout", "reserve", "pickup", "outdoor", "kids", "groups", "catering", "delivery", "latitude", "longitude", "city", "country", "zip")
-#   dummy[i,] <- c(id, fb_id, name, fb_link, checkins, likes, tot_eng, rating_count, rating, category, type, address, phone, about, website, emails, hours, weekday_opening_hours, weekday_closing_hours, weekend_opening_hours, weekend_closing_hours, price_range, description, services, walkins, waiter, takeout, reserve, pickup, outdoor, kids, groups, catering, delivery, latitude, longitude, city, country, zip)
-# }
-# d <- rbind(d, dummy)
+df <- readRDS(file="data_1_5415.Rda")
+
+for (i in 1:nrow(df)) {
+  id <- paste("#",i+last_id, sep = "")
+  fb.id <- check_null(df$id[i])
+  name <- check_null(df$name[i])
+  fb.page.link <- check_null(df$link[i])
+  checkins <- check_null(df$checkins[i])
+  likes <- check_null(df$engagement.count[i])
+  tot_eng <- checkins + likes
+  rating_count <- check_null(df$rating_count[i])
+  rating <- check_null(df$overall_star_rating[i])
+  category <- df$category_list[[i]]$name %>% paste(';', sep = '', collapse = '')
+  type <- check_null(df$type[i])
+  address <- check_null(df$single_line_address[i])
+  phone <- check_null(df$phone[i])
+  about <- check_null(df$about[i])
+  website <- check_null(df$website[i])
+  emails <- check_null(df$emails[i])
+  
+  # putting the 4 hours variables in a function where only hours is TRUE
+  hours_list <- check_hours(df$hours[[i]])
+  hours <- hours_list$hours
+  weekday_opening_hours <- hours_list$w_op
+  weekday_closing_hours <- hours_list$w_ed
+  weekend_opening_hours <- hours_list$wn_op
+  weekend_closing_hours <- hours_list$wn_ed
+  
+  price_range <- check_null(df$price_range[i])
+  description <- check_null(df$description[i])
+  
+  # Extract a list of serivices
+  services_list <- check_rs(df[i,])
+  services <- services_list$services
+  walkins <- services_list$walkins
+  waiter <- services_list$waiter
+  takeout <- services_list$takeout
+  reserve <- services_list$reserve
+  pickup <- services_list$pickup
+  outdoor <- services_list$outdoor
+  kids <- services_list$kids
+  groups <- services_list$groups
+  catering <- services_list$catering
+  delivery <- services_list$delivery
+  
+  latitude  <- check_null(df$location.latitude[i])
+  longitude  <- check_null(df$location.longitude[i])
+  city  <- check_null(df$location.city[i])
+  country  <- check_null(df$location.country[i])
+  zip  <- check_null(df$location.zip[i])
+  # dummy[i,] <- c("id", "fb_id", "name", "fb_link", "checkins", "likes", "tot_eng", "rating_count", "rating", "category", "type", "address", "phone", "about", "website", "emails", "hours", "weekday_opening_hours", "weekday_closing_hours", "weekend_opening_hours", "weekend_closing_hours", "price_range", "description", "services", "walkins", "waiter", "takeout", "reserve", "pickup", "outdoor", "kids", "groups", "catering", "delivery", "latitude", "longitude", "city", "country", "zip")
+  dummy[i,] <- c(id, fb.id, name, fb.page.link, checkins, likes, tot_eng, rating_count, rating, category, type, address, phone, about, website, emails, hours, weekday_opening_hours, weekday_closing_hours, weekend_opening_hours, weekend_closing_hours, price_range, description, services, walkins, waiter, takeout, reserve, pickup, outdoor, kids, groups, catering, delivery, latitude, longitude, city, country, zip)
+}
+newDM <- rbind(newDM, dummy)
+
+### save the newly scraped data to a separate csv file
+# new_scraped <- write.csv(newDM, "new25.csv")
+
+### append new entries to existing database
+mergeDM <- rbind(mergeDM, newDM)
+
+### save new database
+# save_new <- saveRDS(mergeDM, "mergeDM.Rda")
+write.csv(mergeDM,file="newMergeDM.xlsx", row.names = FALSE)
