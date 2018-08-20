@@ -246,5 +246,5 @@ newDM <- rbind(newDM, dummy)
 mergeDM <- rbind(mergeDM, newDM)
 
 ### save new database
-# save_new <- saveRDS(mergeDM, "mergeDM.Rda")
-write.csv(mergeDM,file="newMergeDM.xlsx", row.names = FALSE)
+saveRDS(mergeDM, "newMergeDM.Rda")
+write.csv(mergeDM,file="newMergeDM.csv", row.names = FALSE)
